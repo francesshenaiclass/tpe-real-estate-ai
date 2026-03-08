@@ -1,26 +1,37 @@
 import csv
 import os
-import re
 
-# 這裡要加上 , count，讓這個功能「願意接收」編號
-def generate_individual_report(article_data, count):
+def generate_district_report(house_data):
+    """
+    將單筆房屋資料寫入對應區域的 CSV 檔案中。
+    例如：大安區的資料就會存入 housing_output/大安區.csv
+    """
+    # 設定存放 CSV 的資料夾名稱
     base_dir = os.path.dirname(__file__)
-    folder = os.path.join(base_dir, "news_output")
+    folder = os.path.join(base_dir, "housing_output")
     
+    # 如果資料夾不存在，就自動建立一個
     if not os.path.exists(folder):
         os.makedirs(folder)
 
-    # 清理標題
-    safe_title = re.sub(r'[\\/:*?"<>|]', '_', article_data['title'])
-    
-    # 這裡加上 {count:03d}_，檔名就會變成 001_標題.csv
-    file_name = f"{count:03d}_{safe_title}.csv"
+    # 用「區域」來當作檔名
+    district_name = house_data['區域']
+    file_name = f"{district_name}.csv"
     full_path = os.path.join(folder, file_name)
 
-    keys = ["title", "content"]
-    with open(full_path, "w", newline="", encoding="utf-8-sig") as f:
-        writer = csv.DictWriter(f, fieldnames=keys)
-        writer.writeheader()
-        writer.writerows([article_data])
+    # 定義 CSV 的欄位標題 (必須跟 crawler 打包的 Key 一致)
+    keys = ["區域", "建案名稱", "地址", "價格", "類型", "屋齡", "總坪數", "實際坪數", "樓層", "規格", "車位"]
     
-    print(f"📄 已產出 CSV：{file_name}")
+    # 檢查這個區域的 CSV 是否已經存在 (用來決定要不要寫入標題列)
+    file_exists = os.path.isfile(full_path)
+
+    # 開啟檔案，模式設定為 "a" (append，附加在最後面)
+    with open(full_path, "a", newline="", encoding="utf-8-sig") as f:
+        writer = csv.DictWriter(f, fieldnames=keys)
+        
+        # 如果檔案是剛剛才創建的，先寫入第一行的標題
+        if not file_exists:
+            writer.writeheader()
+            
+        # 寫入這筆房屋資料
+        writer.writerow(house_data)
