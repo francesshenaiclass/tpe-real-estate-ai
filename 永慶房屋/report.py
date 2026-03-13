@@ -19,8 +19,8 @@ def generate_district_report(house_data):
     file_name = f"{district_name}.csv"
     full_path = os.path.join(folder, file_name)
 
-    # 定義 CSV 的欄位標題 (必須跟 crawler 打包的 Key 一致)
-    keys = ["區域", "建案名稱", "地址", "價格", "類型", "屋齡", "總坪數", "實際坪數", "樓層", "規格", "車位"]
+    # 🌟 修改點：將 "建案名稱" 從欄位標題中徹底移除，完美對齊爬蟲吐出來的資料
+    keys = ["區域", "地址", "價格", "類型", "屋齡", "總坪數", "實際坪數", "樓層", "規格", "車位", "緯度", "經度"]
     
     # 檢查這個區域的 CSV 是否已經存在 (用來決定要不要寫入標題列)
     file_exists = os.path.isfile(full_path)
