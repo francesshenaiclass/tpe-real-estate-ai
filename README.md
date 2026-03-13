@@ -5,7 +5,7 @@
 1. 內政部網站：https://lvr.land.moi.gov.tw/　
 2. 永慶房屋：https://evertrust.yungching.com.tw/
 3. 信義房屋：https://www.sinyi.com.tw/tradeinfo/list/Taipei-city/110-zip/6month-dealtime/datatime-desc/
-4. 樂居：https://www.leju.com.tw/
+4. 住商不動產：https://www.hbhousing.com.tw/buyhouse
 
 KPI：
 每人資料筆數 ≥ 3000 筆（或影片 ≥ 500 支）
