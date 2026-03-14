@@ -130,12 +130,17 @@ def clean_house_type_strict(type_list_str):
 # 2. 執行轉換
 df['房屋類型'] = df['房屋類型'].apply(clean_house_type_strict)
 
+
+df['行政區_原始'] = df['行政區']  # 先複製一份原始欄位
 # 進行 One-Hot Encoding
 df = pd.get_dummies(df, columns=['行政區', '房屋類型'], dtype=int)
+# 把複製的欄位改名回「行政區」
+df.rename(columns={'行政區_原始': '行政區'}, inplace=True)
+
 
 # 1. 定義目標欄位順序 (target_columns)
 target_columns = [
-    '路段', '緯度', '經度', 
+    '行政區','路段', '緯度', '經度', 
     '行政區_中山區', '行政區_中正區', '行政區_信義區', '行政區_內湖區', 
     '行政區_北投區', '行政區_南港區', '行政區_士林區', '行政區_大同區', 
     '行政區_大安區', '行政區_文山區', '行政區_松山區', '行政區_萬華區', 
@@ -144,6 +149,9 @@ target_columns = [
     '總樓層', '起始樓層', '最高樓層', '物件涵蓋層數', 
     '房屋類型_公寓', '房屋類型_大樓', '房屋類型_套房', '房屋類型_華廈', '房屋類型_透天'
 ]
+
+# 刪掉房數大於 40 的資料
+df = df[df['房'] <= 40]
 
 df_clean_final = df[target_columns].copy()
 
