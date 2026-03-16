@@ -6,12 +6,12 @@ DISTRICTS = [
     "信義區", "士林區", "北投區", "內湖區", "南港區", "文山區"
 ]
 
-df = pd.read_csv("/home/ubuntu/tpe-real-estate-ai/frances/hbhousing_csv/crawler_merge_all.csv", encoding="utf-8-sig")
-df2 = pd.read_csv("/home/ubuntu/tpe-real-estate-ai/frances/api/api_merge_all_data.csv", encoding="utf-8-sig")
+df = pd.read_csv("/home/frances/tpe-real-estate-ai/frances/hbhousing_csv/crawler_merge_all.csv", encoding="utf-8-sig")
+df2 = pd.read_csv("/home/frances/tpe-real-estate-ai/frances/api/api_merge_all_data.csv", encoding="utf-8-sig")
 
 df3_list = []
 for district in DISTRICTS:
-    path = f"/home/ubuntu/tpe-real-estate-ai/frances/api/{district}.csv"
+    path = f"/home/frances/tpe-real-estate-ai/frances/api/{district}.csv"
     try:
         tmp = pd.read_csv(path, encoding="utf-8-sig")
         df3_list.append(tmp)
@@ -72,6 +72,17 @@ before = len(df_merged)
 df_merged = df_merged.dropna()
 print(f"刪除 inf 筆數：{before - len(df_merged)} 筆，剩餘 {len(df_merged)} 筆")
 
+# 刪除屋齡 <= -1 的資料
+before = len(df_merged)
+df_merged = df_merged[df_merged["屋齡"] > -1]
+print(f"刪除屋齡 <= -1 筆數：{before - len(df_merged)} 筆，剩餘 {len(df_merged)} 筆")
+ 
+# 刪除房 > 10 的資料
+before = len(df_merged)
+df_merged = df_merged[df_merged["房"] <= 10]
+print(f"刪除房 > 10 筆數：{before - len(df_merged)} 筆，剩餘 {len(df_merged)} 筆")
+
+
 float_columns = ["屋齡", "建坪", "經度", "緯度"]
 for col in df_merged.columns:
     if col in float_columns:
@@ -85,6 +96,3 @@ df_merged.to_csv("final_merge.csv", index=False, encoding="utf-8-sig")
 print(f"完成！共 {len(df_merged)} 筆")
 print(df_merged.columns.tolist())
 
-with open("/home/ubuntu/tpe-real-estate-ai/frances/final_merge.py", "w", encoding="utf-8") as f:
-    f.write(content)
-print("寫入完成")
