@@ -1,0 +1,17 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    { "type": "Feature", "properties": { "TNAME": "中山區" }, "geometry": { "type": "Polygon", "coordinates": [[[121.524, 25.040], [121.545, 25.040], [121.545, 25.092], [121.524, 25.092], [121.524, 25.040]]] } },
+    { "type": "Feature", "properties": { "TNAME": "松山區" }, "geometry": { "type": "Polygon", "coordinates": [[[121.538, 25.043], [121.572, 25.043], [121.572, 25.074], [121.538, 25.074], [121.538, 25.043]]] } },
+    { "type": "Feature", "properties": { "TNAME": "內湖區" }, "geometry": { "type": "Polygon", "coordinates": [[[121.561, 25.049], [121.625, 25.049], [121.625, 25.110], [121.561, 25.110], [121.561, 25.049]]] } },
+    { "type": "Feature", "properties": { "TNAME": "大同區" }, "geometry": { "type": "Polygon", "coordinates": [[[121.505, 25.045], [121.520, 25.045], [121.520, 25.075], [121.505, 25.075], [121.505, 25.045]]] } },
+    { "type": "Feature", "properties": { "TNAME": "中正區" }, "geometry": { "type": "Polygon", "coordinates": [[[121.505, 25.015], [121.528, 25.015], [121.528, 25.048], [121.505, 25.048], [121.505, 25.015]]] } },
+    { "type": "Feature", "properties": { "TNAME": "信義區" }, "geometry": { "type": "Polygon", "coordinates": [[[121.550, 25.015], [121.594, 25.015], [121.594, 25.050], [121.550, 25.050], [121.550, 25.015]]] } },
+    { "type": "Feature", "properties": { "TNAME": "大安區" }, "geometry": { "type": "Polygon", "coordinates": [[[121.526, 25.010], [121.565, 25.010], [121.565, 25.048], [121.526, 25.048], [121.526, 25.010]]] } },
+    { "type": "Feature", "properties": { "TNAME": "萬華區" }, "geometry": { "type": "Polygon", "coordinates": [[[121.481, 25.010], [121.510, 25.010], [121.510, 25.051], [121.481, 25.051], [121.481, 25.010]]] } },
+    { "type": "Feature", "properties": { "TNAME": "士林區" }, "geometry": { "type": "Polygon", "coordinates": [[[121.503, 25.080], [121.589, 25.080], [121.589, 25.195], [121.503, 25.195], [121.503, 25.080]]] } },
+    { "type": "Feature", "properties": { "TNAME": "北投區" }, "geometry": { "type": "Polygon", "coordinates": [[[121.468, 25.097], [121.549, 25.097], [121.549, 25.188], [121.468, 25.188], [121.468, 25.097]]] } },
+    { "type": "Feature", "properties": { "TNAME": "南港區" }, "geometry": { "type": "Polygon", "coordinates": [[[121.589, 25.013], [121.641, 25.013], [121.641, 25.066], [121.589, 25.066], [121.589, 25.013]]] } },
+    { "type": "Feature", "properties": { "TNAME": "文山區" }, "geometry": { "type": "Polygon", "coordinates": [[[121.528, 24.960], [121.603, 24.960], [121.603, 25.015], [121.528, 25.015], [121.528, 24.960]]] } }
+  ]
+}
