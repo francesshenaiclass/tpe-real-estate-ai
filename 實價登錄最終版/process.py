@@ -46,6 +46,7 @@ def process_and_merge():
             row["地坪"] = item.get("土地坪數", 0)
             row["房屋總價"] = item.get("成交總價(萬)", 0)
             row["單價"] = item.get("單價(萬/坪)", 0)
+            row["屋齡"] = item.get("屋齡",0)
 
             # --- 格局修正邏輯 ---
             row["房"] = clean_room_logic(item.get("房", 0), "房")
@@ -74,7 +75,7 @@ def process_and_merge():
 
     if combined_list:
         final_df = pd.DataFrame(combined_list)
-        output_filename = "final_taipei_real_price.csv"
+        output_filename = "maxfinal_taipei_real_price_.csv"
         final_df.to_csv(output_filename, index=False, encoding="utf-8-sig")
 
         print("\n" + "="*30)
