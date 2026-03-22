@@ -11,42 +11,70 @@
         h2 { margin-top: 0; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
         .input-group { margin-bottom: 15px; }
         label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 13px; color: #666; }
-        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; transition: border 0.3s; }
+        button { width: 100%; padding: 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; margin-top: 10px; font-weight: bold;}
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
         .result-card { margin-top: 25px; padding: 15px; border: 1px solid #007bff; border-radius: 8px; background: #eef6ff; display: none; }
         .price-row { display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px dashed #ccc; padding-bottom: 5px; }
         .price-val { font-weight: bold; color: #d9534f; }
         .price-mid { font-weight: bold; color: #28a745; font-size: 18px; }
+        .cluster-info { font-size: 12px; color: #888; text-align: right; margin-top: 10px; }
     </style>
 </head>
 <body>
 <div id="map"></div>
 <div id="panel">
-    <h2>房產 AI 估價 (V3.8)</h2>
+    <h2>房產 AI 估價系統</h2>
     <div class="input-group">
-        <label>行政區</label>
+        <label>行政區定位</label>
         <select id="district">
-            <option value="">選擇行政區或點擊地圖標定</option>
+            <option value="">選擇行政區或直接在地圖上點擊</option>
             <option value="中山區">中山區</option><option value="中正區">中正區</option><option value="信義區">信義區</option>
             <option value="內湖區">內湖區</option><option value="北投區">北投區</option><option value="南港區">南港區</option>
             <option value="士林區">士林區</option><option value="大同區">大同區</option><option value="大安區">大安區</option>
             <option value="文山區">文山區</option><option value="松山區">松山區</option><option value="萬華區">萬華區</option>
         </select>
     </div>
-    <div class="input-group"><label>房屋類型</label><select id="house_type"><option value="大樓">大樓</option><option value="公寓">公寓</option><option value="華廈">華廈</option><option value="套房">套房</option><option value="透天">透天</option></select></div>
-    <div style="display:flex; gap:10px;"><div class="input-group" style="flex:1;"><label>坪數</label><input type="number" id="area" value="25.5"></div><div class="input-group" style="flex:1;"><label>屋齡</label><input type="number" id="age" value="15"></div></div>
-    <div style="display:flex; gap:10px;"><div class="input-group" style="flex:1;"><label>樓層</label><input type="number" id="start_floor" value="5"></div><div class="input-group" style="flex:1;"><label>總樓</label><input type="number" id="total_floors" value="12"></div></div>
-    <div style="display:flex; gap:10px;"><div class="input-group" style="flex:1;"><label>房</label><input type="number" id="rooms" value="2"></div><div class="input-group" style="flex:1;"><label>廳</label><input type="number" id="halls" value="1"></div><div class="input-group" style="flex:1;"><label>衛</label><input type="number" id="bathrooms" value="1"></div></div>
-    <div class="input-group"><label>選定座標</label><input type="text" id="coords" readonly></div>
-    <button onclick="runPrediction()">執行 AI 深度估價</button>
+    
+    <div class="input-group">
+        <label>房屋類型</label>
+        <select id="house_type">
+            <option value="大樓">大樓</option>
+            <option value="公寓">公寓</option>
+            <option value="華廈">華廈</option>
+            <option value="透天">透天厝</option>
+        </select>
+    </div>
+    
+    <div style="display:flex; gap:10px;">
+        <div class="input-group" style="flex:1;"><label>建物坪數</label><input type="number" id="area" value="25.5" min="1"></div>
+        <div class="input-group" style="flex:1;"><label>屋齡 (年)</label><input type="number" id="age" value="15" min="0"></div>
+    </div>
+    <div style="display:flex; gap:10px;">
+        <div class="input-group" style="flex:1;"><label>所在樓層</label><input type="number" id="start_floor" value="5"></div>
+        <div class="input-group" style="flex:1;"><label>總樓層數</label><input type="number" id="total_floors" value="12"></div>
+    </div>
+    <div style="display:flex; gap:10px;">
+        <div class="input-group" style="flex:1;"><label>房</label><input type="number" id="rooms" value="2" min="0"></div>
+        <div class="input-group" style="flex:1;"><label>廳</label><input type="number" id="halls" value="1" min="0"></div>
+        <div class="input-group" style="flex:1;"><label>衛</label><input type="number" id="bathrooms" value="1" min="0"></div>
+    </div>
+    <div class="input-group">
+        <label>選定座標 (經緯度)</label>
+        <input type="text" id="coords" readonly placeholder="請在地圖上點擊選取位置">
+    </div>
+    
+    <button id="predictBtn" onclick="runPrediction()">執行 AI 深度估價</button>
     
     <div id="resultCard" class="result-card">
-        <h3>分析結果</h3>
+        <h3 style="margin-top: 0; color: #0056b3;">分析結果</h3>
         <div class="price-row"><span>市場開價預估</span><span class="price-val" id="res_list"></span></div>
-        <div class="price-row"><span>成交中位數</span><span class="price-mid" id="res_mid"></span></div>
-        <div class="price-row"><span>合理低標 (P10)</span><span id="res_low"></span></div>
-        <div class="price-row"><span>合理高標 (P90)</span><span id="res_high"></span></div>
-        <div class="price-row"><span>議價空間比例</span><span id="res_gap"></span></div>
+        <div class="price-row"><span>合理成交中位數</span><span class="price-mid" id="res_mid"></span></div>
+        <div class="price-row"><span>合理低標</span><span class="price-val" id="res_low" style="color:#666;"></span></div>
+        <div class="price-row"><span>合理高標</span><span class="price-val" id="res_high" style="color:#666;"></span></div>
+        <div class="price-row"><span>建議議價空間</span><span class="price-val" id="res_gap" style="color:#e67e22;"></span></div>
+        <div class="cluster-info" id="cluster_info"></div>
     </div>
 </div>
 
@@ -59,7 +87,8 @@
 
     const centers = {
         "中山區": [25.0685, 121.5333], "中正區": [25.0322, 121.5185], "信義區": [25.0330, 121.5670],
-        "內湖區": [25.0697, 121.5886], "北投區": [25.1321, 121.4987], "南港區": [25.0553, 121.6073],
+        "內湖區": [25.0697, 121.5886], "北投區": [25.1321, 121.4987], 
+        "南港區": [25.052, 121.606], 
         "士林區": [25.0901, 121.5245], "大同區": [25.0633, 121.5133], "大安區": [25.0340, 121.5435],
         "文山區": [24.9892, 121.5585], "松山區": [25.0592, 121.5592], "萬華區": [25.0354, 121.5032]
     };
@@ -70,8 +99,8 @@
         if (c) {
             isAuto = true;
             selectedLat = c[0]; selectedLon = c[1];
-            map.flyTo(c, 16);
-            updateMarker(c[0], c[1], `已自動定位至：${e.target.value}<br>您可以點擊地圖其他地方查價。`);
+            map.flyTo(c, 15);
+            updateMarker(c[0], c[1], `<b>已定位至：${e.target.value}</b><br><span style="font-size: 12px; color: #666; display: inline-block; margin-top: 5px;">📍 請在地圖上點擊你想看的精確地點</span>`);
             setTimeout(() => isAuto = false, 500);
         }
     });
@@ -80,15 +109,18 @@
         if (isAuto) return;
         isAuto = true;
         selectedLat = e.latlng.lat; selectedLon = e.latlng.lng;
-        updateMarker(selectedLat, selectedLon, "精準識別中...");
+        updateMarker(selectedLat, selectedLon, "座標識別中...");
+        
         try {
             const res = await fetch(`http://127.0.0.1:8000/api/detect_district?lat=${selectedLat}&lon=${selectedLon}`);
             const data = await res.json();
             if (data.district && data.district !== "未知區域") {
                 document.getElementById('district').value = data.district;
-                marker.getPopup().setContent(`<b>識別區域：${data.district}</b><br>您可以點擊地圖其他地方查價。`).update();
+                marker.getPopup().setContent(`<b>識別區域：${data.district}</b>`).update();
+            } else {
+                marker.getPopup().setContent(`<b>警告：無法識別行政區</b><br><span style="font-size:12px; color:red;">請手動從上方選單指定以進行估價</span>`).update();
             }
-        } catch (err) { console.error(err); }
+        } catch (err) { console.error("API 連線失敗", err); }
         isAuto = false;
     });
 
@@ -99,8 +131,10 @@
     }
 
     async function initMrt() {
-        const res = await fetch('http://127.0.0.1:8000/api/mrt_data');
-        mrtStations = await res.json();
+        try {
+            const res = await fetch('http://127.0.0.1:8000/api/mrt_data');
+            mrtStations = await res.json();
+        } catch (err) { console.error("無法載入捷運站資料", err); }
     }
     initMrt();
 
@@ -112,7 +146,25 @@
     }
 
     async function runPrediction() {
-        if (!selectedLat) return alert("請先選點");
+        const btn = document.getElementById('predictBtn');
+        const district = document.getElementById('district').value;
+        
+        if (!selectedLat || !district) {
+            return alert("❌ 錯誤：無法辨識位置，請確認已在地圖點擊，並確認上方「行政區定位」有被選取。");
+        }
+        
+        const startFloor = parseInt(document.getElementById('start_floor').value);
+        const totalFloors = parseInt(document.getElementById('total_floors').value);
+        
+        if (startFloor > totalFloors) {
+            document.getElementById('start_floor').style.border = "2px solid red";
+            document.getElementById('total_floors').style.border = "2px solid red";
+            return alert(`❌ 樓層輸入錯誤！\n「所在樓層 (${startFloor})」不能大於「總樓層數 (${totalFloors})」`);
+        } else {
+            document.getElementById('start_floor').style.border = "1px solid #ddd";
+            document.getElementById('total_floors').style.border = "1px solid #ddd";
+        }
+
         let minDist = Infinity;
         mrtStations.forEach(s => {
             let d = calcDist(selectedLat, selectedLon, s.lat, s.lon);
@@ -120,33 +172,54 @@
         });
 
         const payload = {
-            district: document.getElementById('district').value,
+            district: district,
             building_area: parseFloat(document.getElementById('area').value),
             house_age: parseFloat(document.getElementById('age').value),
-            start_floor: parseInt(document.getElementById('start_floor').value),
-            total_floors: parseInt(document.getElementById('total_floors').value),
+            start_floor: startFloor,
+            total_floors: totalFloors,
             rooms: parseInt(document.getElementById('rooms').value),
             halls: parseInt(document.getElementById('halls').value),
             bathrooms: parseInt(document.getElementById('bathrooms').value),
-            latitude: selectedLat, longitude: selectedLon,
+            latitude: selectedLat, 
+            longitude: selectedLon,
             house_type: document.getElementById('house_type').value,
             distance_to_mrt: minDist * 1000 
         };
 
-        const res = await fetch('http://127.0.0.1:8000/api/v3/predict', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        
-        if (data.price_results) {
-            document.getElementById('resultCard').style.display = 'block';
-            const pr = data.price_results;
-            document.getElementById('res_list').innerText = Math.round(pr.market_listing_total).toLocaleString() + " 萬";
-            document.getElementById('res_mid').innerText = Math.round(pr.total_price_mid).toLocaleString() + " 萬";
-            document.getElementById('res_low').innerText = Math.round(pr.safety_range.low_p10).toLocaleString() + " 萬";
-            document.getElementById('res_high').innerText = Math.round(pr.safety_range.high_p90).toLocaleString() + " 萬";
-            document.getElementById('res_gap').innerText = data.analysis.bargain_space_percent + "%";
+        try {
+            btn.disabled = true;
+            btn.innerText = "計算中...";
+            
+            const res = await fetch('http://127.0.0.1:8000/api/v3/predict', {
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            
+            if (!res.ok) {
+                const err = await res.json();
+                return alert("預測失敗: " + err.detail);
+            }
+            
+            const data = await res.json();
+            
+            if (data.price_results) {
+                document.getElementById('resultCard').style.display = 'block';
+                const pr = data.price_results;
+                
+                document.getElementById('res_list').innerText = Math.round(pr.market_listing_total).toLocaleString() + " 萬";
+                document.getElementById('res_mid').innerText = Math.round(pr.total_price_mid).toLocaleString() + " 萬";
+                document.getElementById('res_low').innerText = Math.round(pr.safety_range.low_p10).toLocaleString() + " 萬";
+                document.getElementById('res_high').innerText = Math.round(pr.safety_range.high_p90).toLocaleString() + " 萬";
+                document.getElementById('res_gap').innerText = data.analysis.bargain_space_percent + "%";
+                document.getElementById('cluster_info').innerText = `AI 空間分群標籤: #${data.analysis.area_cluster_id}`;
+            }
+        } catch (err) {
+            console.error(err);
+            alert("伺服器連線異常，請確保 FastAPI 已啟動。");
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "執行 AI 深度估價";
         }
     }
 </script>
