@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>台北市購房預算建議系統</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map { height: 450px; width: 100%; border-radius: 12px; }
+        .card { border-radius: 12px; transition: transform 0.2s; }
+        .table-responsive { max-height: 400px; overflow-y: auto; }
+        .price-highlight { color: #0d6efd; font-weight: bold; }
+    </style>
+</head>
+<body class="bg-light">
+<div class="container py-4">
+    <h2 class="mb-2 text-primary">🔍 尋找理想家</h2>
+    <h5 class="mb-4 text-secondary">台北市購房預算落點與置產建議系統</h5>
+    
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card p-4 shadow-sm border-0 mb-4">
+                <form id="searchForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">1. 選擇心儀行政區</label>
+                        <select id="district" class="form-select">
+                            <option value="中正區">中正區</option>
+                            <option value="萬華區">萬華區</option>
+                            <option value="大同區">大同區</option>
+                            <option value="中山區">中山區</option>
+                            <option value="松山區">松山區</option>
+                            <option value="大安區">大安區</option>
+                            <option value="信義區">信義區</option>
+                            <option value="內湖區">內湖區</option>
+                            <option value="南港區">南港區</option>
+                            <option value="士林區">士林區</option>
+                            <option value="北投區">北投區</option>
+                            <option value="文山區">文山區</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">2. 您的購房預算 (萬元)</label>
+                        <input type="number" id="budget" class="form-control" value="2000" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">3. 預期坪數</label>
+                        <input type="number" id="area" class="form-control" value="25" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">4. 屋齡偏好 (年以下)</label>
+                        <input type="number" id="house_age" class="form-control" value="20" required>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col"><label class="small">欲看樓層</label><input type="number" id="floor" class="form-control" value="5"></div>
+                        <div class="col"><label class="small">總樓層</label><input type="number" id="total_floors" class="form-control" value="12"></div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">5. 距離捷運站 (公尺)</label>
+                        <input type="number" id="mrt_dist" class="form-control" value="500">
+                        <div class="form-text">建議 500m 以內為捷運宅。</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">獲取個人化置產建議</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div id="map" class="mb-4 shadow-sm border"></div>
+            
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">✨ 預算匹配結果 (P50 房價符合預算)</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>建議類型 / 格局</th>
+                                    <th>市場開價預估</th>
+                                    <th>成交中位數(P50)</th>
+                                    <th class="text-muted">合理範圍 (P10~P90)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultBody">
+                                <tr><td colspan="4" class="text-center py-5 text-muted">輸入預算與條件後，系統將為您分析推薦物件類型。</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script>
+    // 1. 各區中心點座標
+    const districtCoords = {
+        "中正區": [25.0323, 121.5186], "萬華區": [25.0331, 121.4994], "大同區": [25.0630, 121.5133],
+        "中山區": [25.0685, 121.5282], "松山區": [25.0597, 121.5583], "大安區": [25.0263, 121.5283],
+        "信義區": [25.0324, 121.5668], "內湖區": [25.0688, 121.5898], "南港區": [25.0548, 121.6068],
+        "士林區": [25.0922, 121.5255], "北投區": [25.1321, 121.4987], "文山區": [24.9897, 121.5768]
+    };
+
+    // 2. 初始化地圖
+    const map = L.map('map').setView([25.0263, 121.5283], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    let marker = L.marker([25.0263, 121.5283]).addTo(map);
+    let searchCircle = null; // 用來儲存圓圈實體
+
+    // 3. 核心函數：更新半透明圓圈
+    function updateCircle() {
+        const district = document.getElementById('district').value;
+        const radius = parseFloat(document.getElementById('mrt_dist').value) || 0;
+        const coords = districtCoords[district];
+
+        if (coords) {
+            // 如果已經有舊的圓圈，先移除它
+            if (searchCircle) {
+                map.removeLayer(searchCircle);
+            }
+
+            // 畫出新圓圈
+            searchCircle = L.circle(coords, {
+                color: '#0d6efd',      // 邊框顏色
+                fillColor: '#0d6efd',  // 填充顏色
+                fillOpacity: 0.2,      // 透明度 (0.2 很適合置產建議的視覺感)
+                radius: radius         // 半徑 (公尺)
+            }).addTo(map);
+
+            // 自動縮放地圖以適應圓圈大小
+            if (radius > 0) {
+                map.fitBounds(searchCircle.getBounds(), { padding: [20, 20] });
+            }
+        }
+    }
+
+    // 4. 事件監聽：當行政區或距離改變時，立刻更新
+    document.getElementById('district').addEventListener('change', function(e) {
+        const coords = districtCoords[e.target.value];
+        if (coords) {
+            marker.setLatLng(coords);
+            updateCircle();
+        }
+    });
+
+    document.getElementById('mrt_dist').addEventListener('input', updateCircle);
+
+    // 頁面載入時先執行一次
+    updateCircle();
+
+    // 5. 表單提交處理 (維持原本呼叫 API 的邏輯)
+    document.getElementById('searchForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const payload = {
+            district: document.getElementById('district').value,
+            budget: parseFloat(document.getElementById('budget').value),
+            area: parseFloat(document.getElementById('area').value),
+            house_age: parseFloat(document.getElementById('house_age').value),
+            floor: parseInt(document.getElementById('floor').value),
+            total_floors: parseInt(document.getElementById('total_floors').value),
+            mrt_dist: parseFloat(document.getElementById('mrt_dist').value)
+        };
+
+        const resultBody = document.getElementById('resultBody');
+        resultBody.innerHTML = '<tr><td colspan="4" class="text-center py-5">分析中，請稍候...</td></tr>';
+
+        try {
+            const response = await fetch('http://127.0.0.1:8000/predict_options', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            
+            resultBody.innerHTML = '';
+            if (data.results.length === 0) {
+                resultBody.innerHTML = '<tr><td colspan="4" class="text-center py-5 text-danger">目前預算在該區找不到符合中位數成交價的組合。</td></tr>';
+                return;
+            }
+
+            data.results.forEach(res => {
+                const row = `
+                    <tr>
+                        <td class="fw-bold">${res.layout_type}</td>
+                        <td><span class="text-secondary">${res.listing_p50}</span> 萬</td>
+                        <td><span class="text-primary fw-bold">${res.real_p50}</span> 萬</td>
+                        <td class="text-muted small">${res.real_p10} 萬 ~ ${res.real_p90} 萬</td>
+                    </tr>
+                `;
+                resultBody.insertAdjacentHTML('beforeend', row);
+            });
+        } catch (error) {
+            resultBody.innerHTML = '<tr><td colspan="4" class="text-center py-5 text-danger">連線失敗：請確認 API 已啟動。</td></tr>';
+        }
+    });
+</script>
+</body>
+</html>
