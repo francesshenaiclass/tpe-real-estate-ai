@@ -64,7 +64,6 @@ class PredictionRequest(BaseModel):
     bathrooms: int
     latitude: float
     longitude: float
-    house_type: str
     distance_to_mrt: float
 
 @app.get("/")
