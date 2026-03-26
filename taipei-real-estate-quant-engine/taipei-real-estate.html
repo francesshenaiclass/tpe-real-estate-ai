@@ -19,7 +19,6 @@
         .price-row { display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px dashed #ccc; padding-bottom: 5px; }
         .price-val { font-weight: bold; color: #d9534f; }
         .price-mid { font-weight: bold; color: #28a745; font-size: 18px; }
-        .cluster-info { font-size: 12px; color: #888; text-align: right; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -74,7 +73,6 @@
         <div class="price-row"><span>合理低標</span><span class="price-val" id="res_low" style="color:#666;"></span></div>
         <div class="price-row"><span>合理高標</span><span class="price-val" id="res_high" style="color:#666;"></span></div>
         <div class="price-row"><span>建議議價空間</span><span class="price-val" id="res_gap" style="color:#e67e22;"></span></div>
-        <div class="cluster-info" id="cluster_info"></div>
     </div>
 </div>
 
@@ -83,15 +81,37 @@
     const map = L.map('map').setView([25.046, 121.517], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    let marker, selectedLat, selectedLon, mrtStations = [], isAuto = false;
+    let marker, circle, selectedLat, selectedLon, mrtStations = [], isAuto = false;
 
+    // 保留你原本手動校正過的地標座標
     const centers = {
         "中山區": [25.0685, 121.5333], "中正區": [25.0322, 121.5185], "信義區": [25.0330, 121.5670],
         "內湖區": [25.0697, 121.5886], "北投區": [25.1321, 121.4987], 
-        "南港區": [25.052, 121.606], 
+        "南港區": [25.052, 121.606], // 🚨 已經將南港區座標往下移，避開內湖重疊區
         "士林區": [25.0901, 121.5245], "大同區": [25.0633, 121.5133], "大安區": [25.0340, 121.5435],
         "文山區": [24.9892, 121.5585], "松山區": [25.0592, 121.5592], "萬華區": [25.0354, 121.5032]
     };
+
+    // 畫圈與大頭針的核心邏輯，加入紅/藍色視覺區分
+    function updateMarker(lat, lon, msg, isValid = true) {
+        if (marker) map.removeLayer(marker);
+        if (circle) map.removeLayer(circle);
+        
+        marker = L.marker([lat, lon]).addTo(map).bindPopup(msg).openPopup();
+        
+        if (isValid) {
+            circle = L.circle([lat, lon], {
+                color: '#007bff', fillColor: '#007bff', fillOpacity: 0.15, radius: 500
+            }).addTo(map);
+        } else {
+            // 未知區域畫紅圈警告
+            circle = L.circle([lat, lon], {
+                color: '#ff0000', fillColor: '#ff0000', fillOpacity: 0.2, radius: 500
+            }).addTo(map);
+        }
+        
+        document.getElementById('coords').value = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+    }
 
     document.getElementById('district').addEventListener('change', (e) => {
         if (isAuto) return;
@@ -100,7 +120,8 @@
             isAuto = true;
             selectedLat = c[0]; selectedLon = c[1];
             map.flyTo(c, 15);
-            updateMarker(c[0], c[1], `<b>已定位至：${e.target.value}</b><br><span style="font-size: 12px; color: #666; display: inline-block; margin-top: 5px;">📍 請在地圖上點擊你想看的精確地點</span>`);
+            updateMarker(c[0], c[1], `<b>已定位至：${e.target.value}</b><br><span style="font-size: 12px; color: #666; display: inline-block; margin-top: 5px;">📍 請在地圖上點擊你想看的精確地點</span>`, true);
+            document.getElementById('predictBtn').disabled = false; // 解除按鈕鎖定
             setTimeout(() => isAuto = false, 500);
         }
     });
@@ -109,31 +130,33 @@
         if (isAuto) return;
         isAuto = true;
         selectedLat = e.latlng.lat; selectedLon = e.latlng.lng;
-        updateMarker(selectedLat, selectedLon, "座標識別中...");
+        
+        // 先預設畫藍圈，等 API 判定
+        updateMarker(selectedLat, selectedLon, "座標識別中...", true);
         
         try {
             const res = await fetch(`http://127.0.0.1:8000/api/detect_district?lat=${selectedLat}&lon=${selectedLon}`);
             const data = await res.json();
+            
             if (data.district && data.district !== "未知區域") {
                 document.getElementById('district').value = data.district;
-                marker.getPopup().setContent(`<b>識別區域：${data.district}</b>`).update();
+                updateMarker(selectedLat, selectedLon, `<b>識別區域：${data.district}</b>`, true);
+                document.getElementById('predictBtn').disabled = false; // 開放估價
             } else {
-                marker.getPopup().setContent(`<b>警告：無法識別行政區</b><br><span style="font-size:12px; color:red;">請手動從上方選單指定以進行估價</span>`).update();
+                // 強制清空下拉選單，拔掉幽靈選項
+                document.getElementById('district').value = ""; 
+                updateMarker(selectedLat, selectedLon, `<b>❌ 警告：此處超出圖資範圍，拒絕估價</b>`, false);
+                document.getElementById('predictBtn').disabled = true; // 強制鎖死按鈕
             }
         } catch (err) { console.error("API 連線失敗", err); }
         isAuto = false;
     });
 
-    function updateMarker(lat, lon, msg) {
-        if (marker) map.removeLayer(marker);
-        marker = L.marker([lat, lon]).addTo(map).bindPopup(msg).openPopup();
-        document.getElementById('coords').value = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
-    }
-
     async function initMrt() {
         try {
             const res = await fetch('http://127.0.0.1:8000/api/mrt_data');
-            mrtStations = await res.json();
+            const data = await res.json();
+            mrtStations = Array.isArray(data) ? data : (data.stations || []);
         } catch (err) { console.error("無法載入捷運站資料", err); }
     }
     initMrt();
@@ -149,12 +172,10 @@
         const btn = document.getElementById('predictBtn');
         const district = document.getElementById('district').value;
         
-        if (!selectedLat || !district) {
-            return alert("❌ 錯誤：無法辨識位置，請確認已在地圖點擊，並確認上方「行政區定位」有被選取。");
-        }
+        if (!selectedLat || !district) return alert("❌ 錯誤：請先在地圖上點擊選擇具體房屋位置");
         
-        const startFloor = parseInt(document.getElementById('start_floor').value);
-        const totalFloors = parseInt(document.getElementById('total_floors').value);
+        const startFloor = parseInt(document.getElementById('start_floor').value) || 1;
+        const totalFloors = parseInt(document.getElementById('total_floors').value) || 1;
         
         if (startFloor > totalFloors) {
             document.getElementById('start_floor').style.border = "2px solid red";
@@ -166,20 +187,29 @@
         }
 
         let minDist = Infinity;
+        let closestStation = "";
         mrtStations.forEach(s => {
-            let d = calcDist(selectedLat, selectedLon, s.lat, s.lon);
-            if (d < minDist) minDist = d;
+            const sLat = s.lat || s.緯度;
+            const sLon = s.lon || s.經度;
+            let d = calcDist(selectedLat, selectedLon, sLat, sLon);
+            if (d < minDist) {
+                minDist = d;
+                closestStation = s.name || s.站名 || s.station_name || "未知";
+            }
         });
+
+        if (minDist === Infinity) minDist = 5;
 
         const payload = {
             district: district,
-            building_area: parseFloat(document.getElementById('area').value),
-            house_age: parseFloat(document.getElementById('age').value),
+            mrt_station: closestStation, 
+            building_area: parseFloat(document.getElementById('area').value) || 0,
+            house_age: parseFloat(document.getElementById('age').value) || 0,
             start_floor: startFloor,
             total_floors: totalFloors,
-            rooms: parseInt(document.getElementById('rooms').value),
-            halls: parseInt(document.getElementById('halls').value),
-            bathrooms: parseInt(document.getElementById('bathrooms').value),
+            rooms: parseInt(document.getElementById('rooms').value) || 0,
+            halls: parseInt(document.getElementById('halls').value) || 0,
+            bathrooms: parseInt(document.getElementById('bathrooms').value) || 0,
             latitude: selectedLat, 
             longitude: selectedLon,
             house_type: document.getElementById('house_type').value,
@@ -203,17 +233,18 @@
             
             const data = await res.json();
             
-            if (data.price_results) {
-                document.getElementById('resultCard').style.display = 'block';
-                const pr = data.price_results;
-                
-                document.getElementById('res_list').innerText = Math.round(pr.market_listing_total).toLocaleString() + " 萬";
-                document.getElementById('res_mid').innerText = Math.round(pr.total_price_mid).toLocaleString() + " 萬";
-                document.getElementById('res_low').innerText = Math.round(pr.safety_range.low_p10).toLocaleString() + " 萬";
-                document.getElementById('res_high').innerText = Math.round(pr.safety_range.high_p90).toLocaleString() + " 萬";
-                document.getElementById('res_gap').innerText = data.analysis.bargain_space_percent + "%";
-                document.getElementById('cluster_info').innerText = `AI 空間分群標籤: #${data.analysis.area_cluster_id}`;
-            }
+            document.getElementById('resultCard').style.display = 'block';
+            
+            const listData = data.listing_analysis;
+            const realData = data.real_price_reference;
+            const insight = data.insight;
+            
+            document.getElementById('res_list').innerText = Math.round(listData.accurate_listing_price).toLocaleString() + " 萬";
+            document.getElementById('res_mid').innerText = Math.round(realData.mid_p50).toLocaleString() + " 萬";
+            document.getElementById('res_low').innerText = Math.round(realData.low_p10).toLocaleString() + " 萬";
+            document.getElementById('res_high').innerText = Math.round(realData.high_p90).toLocaleString() + " 萬";
+            document.getElementById('res_gap').innerText = insight.suggested_bargain_percent + "%";
+
         } catch (err) {
             console.error(err);
             alert("伺服器連線異常，請確保 FastAPI 已啟動。");
