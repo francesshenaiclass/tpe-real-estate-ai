@@ -57,7 +57,7 @@ def load_resources():
 load_resources()
 
 # 18 個特徵順序嚴格對齊
-FEATURES = ["building_area", "house_age", "district_enc", "mrt_cluster_enc", "rooms", "halls", "bathrooms", "has_parking", "transaction_month", "latitude", "longitude", "coord_interact", "distance_to_mrt", "floor_ratio", "type_apartment", "type_building", "type_mansion", "type_house"]
+FEATURES = ["building_area", "house_age", "district_enc", "mrt_cluster_enc", "rooms", "halls", "bathrooms", "has_parking", "transaction_month", "latitude", "longitude", "coord_interact", "distance_to_mrt", "floor_ratio", "type_apartment", "type_building", "type_mansion", "type_house","type_studio"]
 
 class PredictionRequest(BaseModel):
     district: str
@@ -109,7 +109,7 @@ async def predict_v3(req: PredictionRequest):
         floor_ratio = min(max(req.start_floor / max(req.total_floors, 1), 0), 1)
         
         type_flags = {f"type_{k}": 1 if req.house_type == v else 0 
-                      for k, v in [("apartment", "公寓"), ("building", "大樓"), ("mansion", "華廈"), ("house", "透天")]}
+                      for k, v in [("apartment", "公寓"), ("building", "大樓"), ("mansion", "華廈"), ("house", "透天"),("studio", "套房")]}
 
         row = {
             "building_area": req.building_area, "house_age": req.house_age,

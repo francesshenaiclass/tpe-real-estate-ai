@@ -109,7 +109,7 @@ FEATURES = [
     "building_area", "house_age", "district_enc", "mrt_cluster_enc", 
     "rooms", "halls", "bathrooms", "has_parking", "transaction_month",
     "latitude", "longitude", "coord_interact", "distance_to_mrt", "floor_ratio",
-    "type_apartment", "type_building", "type_mansion", "type_house"
+    "type_apartment", "type_building", "type_mansion", "type_house","type_studio"
 ]
 
 # ════════════════════════════════════════════════
