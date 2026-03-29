@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>台北 · 房價月增率儀表板</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+    :root {
+        --ink: #0b0c10; --ink2: #13151c; --ink3: #1c1f2b; --rule: #252836;
+        --silver: #a8afc8; --dim: #444968; --text: #e8ecf8;
+        --rise: #ff4d4d; --fall: #1fd98a; --flat: #5a6285; --gold: #f0c040;
+        --ff-head: 'DM Serif Display', Georgia, serif;
+        --ff-mono: 'DM Mono', monospace;
+        --ff-body: 'Noto Sans TC', sans-serif;
+        --r: 8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 14px; }
+    body {
+        background: var(--ink); color: var(--text); font-family: var(--ff-body);
+        min-height: 100vh; line-height: 1.5; overflow-x: hidden;
+    }
+    body::before {
+        content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+        background-image: linear-gradient(var(--rule) 1px, transparent 1px), linear-gradient(90deg, var(--rule) 1px, transparent 1px);
+        background-size: 48px 48px; opacity: .18;
+    }
+    .page { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 30px; }
+
+    /* Masthead */
+    .masthead { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; border-bottom: 1px solid var(--rule); padding-bottom: 20px; }
+    .masthead h1 { font-family: var(--ff-head); font-size: 2.8rem; font-weight: 400; }
+    .masthead h1 em { color: var(--rise); font-style: normal; }
+    .status-pill { display: flex; align-items: center; gap: 8px; background: var(--ink3); padding: 8px 15px; border-radius: 20px; font-family: var(--ff-mono); font-size: 0.75rem; border: 1px solid var(--rule); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
+    .dot.live { background: var(--fall); box-shadow: 0 0 10px var(--fall); animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+    /* Components */
+    .section-title { font-family: var(--ff-head); font-size: 1.6rem; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+    .tag { font-family: var(--ff-mono); font-size: 0.7rem; color: var(--dim); border: 1px solid var(--rule); padding: 2px 8px; border-radius: 4px; }
+    
+    .rank-strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 40px; }
+    .rank-card { background: var(--ink2); border: 1px solid var(--rule); padding: 15px; border-radius: var(--r); position: relative; transition: 0.3s; }
+    .rank-card:hover { border-color: var(--silver); transform: translateY(-3px); }
+    .rank-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+    .rank-card.up::before { background: var(--rise); }
+    .rank-card.down::before { background: var(--fall); }
+    .rank-rate.up { color: var(--rise); }
+    .rank-rate.down { color: var(--fall); }
+
+    .heat-panel { background: var(--ink2); border: 1px solid var(--rule); border-radius: var(--r); padding: 20px; overflow-x: auto; margin-bottom: 40px; }
+    .heat-tbl { width: 100%; border-collapse: separate; border-spacing: 4px; }
+    .heat-tbl td { text-align: center; padding: 10px 5px; border-radius: 4px; font-family: var(--ff-mono); font-size: 0.8rem; min-width: 60px; }
+    .heat-tbl td.ln { text-align: left; font-family: var(--ff-body); font-weight: 500; min-width: 100px; }
+    .heat-tbl td.selected-col { outline: 2px solid var(--silver); }
+
+    .line-panel { background: var(--ink2); border: 1px solid var(--rule); border-radius: var(--r); padding: 25px; }
+    .loader { text-align: center; padding: 100px; font-family: var(--ff-mono); color: var(--dim); }
+    
+    .mpill { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--rule); background: var(--ink3); color: var(--dim); cursor: pointer; font-family: var(--ff-mono); transition: 0.2s; }
+    .mpill.active { background: var(--text); color: var(--ink); border-color: var(--text); font-weight: bold; }
+</style>
+</head>
+<body>
+
+<div class="page">
+    <div class="masthead">
+        <div>
+            <p class="eyebrow">TAIPEI REAL ESTATE METRICS</p>
+            <h1>房價<em>月增率</em>走勢</h1>
+        </div>
+        <div class="status-pill">
+            <div id="dot" class="dot"></div>
+            <span id="conn-lbl">連線中...</span>
+        </div>
+    </div>
+
+    <div id="loader" class="loader">
+        <div style="margin-bottom: 15px;">📡 正在連線至資料庫...</div>
+        <small>若長時間沒反應，請檢查後端市場分析模組是否正常啟動</small>
+    </div>
+
+    <div id="main-content" style="display: none;">
+        <div style="margin-bottom: 30px; display: flex; align-items: center; gap: 15px;">
+            <span style="font-size: 0.8rem; color: var(--dim); font-family: var(--ff-mono);">SELECT MONTH</span>
+            <div id="month-pills" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+        </div>
+
+        <div class="section-title">
+            🏆 漲幅排行榜 <span id="rank-month-tag" class="tag">---</span>
+        </div>
+        <div id="rank-strip" class="rank-strip"></div>
+
+        <div class="section-title">🔥 區域熱力矩陣 <span class="tag">HEATMAP</span></div>
+        <div class="heat-panel">
+            <table id="heat-tbl" class="heat-tbl"></table>
+        </div>
+
+        <div class="section-title">📈 12區走勢對比 <span class="tag">LINE CHART</span></div>
+        <div class="line-panel">
+            <canvas id="lineChart" style="min-height: 400px;"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════
+   核心變數與配置
+════════════════════════════════════════ */
+const API_BASE = '/api/trends';
+const DISTRICTS = ["中正區","大同區","中山區","松山區","大安區","萬華區","信義區","士林區","北投區","內湖區","南港區","文山區"];
+const COLORS = ['#5b8cf5','#f55b8c','#4dd68a','#f5a830','#20bff5','#c87df5','#f5d030','#4df5d0','#f5704a','#80f54a','#9060f5','#f5b060'];
+
+let allData = {}; 
+let allMonths = [];
+let selMonth = '';
+let lineInst = null;
+
+/* ════════════════════════════════════════
+   啟動與資料抓取
+════════════════════════════════════════ */
+async function boot() {
+    try {
+        const res = await fetch(`${API_BASE}/monthly-growth`);
+        if (!res.ok) throw new Error(`API 請求失敗: ${res.status}`);
+        const json = await res.json();
+        
+        allData = json.districts || {};
+        
+        const ms = new Set();
+        Object.values(allData).forEach(rows => {
+            if(Array.isArray(rows)) rows.forEach(r => ms.add(r.年月));
+        });
+        
+        allMonths = [...ms].sort();
+        if (allMonths.length === 0) throw new Error("資料庫查無數據");
+
+        selMonth = allMonths[allMonths.length - 1];
+
+        document.getElementById('dot').classList.add('live');
+        document.getElementById('conn-lbl').innerText = "API 已連線";
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
+
+        renderAll();
+    } catch (e) {
+        document.getElementById('dot').classList.add('dead');
+        document.getElementById('conn-lbl').innerText = "連線失敗";
+        document.getElementById('loader').innerHTML = `<b style="color:var(--rise)">無法顯示資料</b><br>${e.message}`;
+    }
+}
+
+function renderAll() {
+    buildPills();
+    buildRanking();
+    buildHeatmap();
+    buildLineChart();
+}
+
+function buildPills() {
+    const wrap = document.getElementById('month-pills');
+    wrap.innerHTML = allMonths.map(m => `
+        <div class="mpill ${m===selMonth?'active':''}" onclick="pickMonth('${m}')">${m}</div>
+    `).join('');
+}
+
+function pickMonth(m) {
+    selMonth = m;
+    document.querySelectorAll('.mpill').forEach(el => el.classList.toggle('active', el.innerText.trim() === m));
+    buildRanking();
+    document.querySelectorAll('#heat-tbl td').forEach(td => {
+        td.classList.toggle('selected-col', td.getAttribute('data-month') === m);
+    });
+}
+
+function buildRanking() {
+    document.getElementById('rank-month-tag').innerText = selMonth;
+    const items = DISTRICTS.map(d => {
+        const row = (allData[d] || []).find(x => x.年月 === selMonth);
+        return { name: d, rate: row ? row.月增率 : null, price: row ? row.均總價 : 0 };
+    }).filter(x => x.rate !== null).sort((a, b) => b.rate - a.rate);
+
+    document.getElementById('rank-strip').innerHTML = items.map((item, i) => {
+        const cls = item.rate > 0 ? 'up' : 'down';
+        const sign = item.rate > 0 ? '+' : '';
+        return `
+            <div class="rank-card ${cls}">
+                <div style="font-family:var(--ff-mono); font-size:1.1rem; color:var(--dim)">#${i+1}</div>
+                <div style="font-weight:bold;">${item.name}</div>
+                <div style="color:var(--dim); font-size:0.75rem;">均價 ${item.price.toLocaleString()} 萬</div>
+                <div class="rank-rate ${cls}" style="font-family:var(--ff-mono); font-weight:bold; margin-top:8px;">
+                    ${sign}${item.rate.toFixed(1)}%
+                </div>
+            </div>`;
+    }).join('');
+}
+
+function buildHeatmap() {
+    const table = document.getElementById('heat-tbl');
+    let html = '<thead><tr><th class="ln">地區</th>';
+    allMonths.forEach(m => html += `<th style="font-family:var(--ff-mono); font-size:0.6rem; color:var(--dim)">${m.slice(5)}月</th>`);
+    html += '</tr></thead><tbody>';
+
+    DISTRICTS.forEach(d => {
+        html += `<tr><td class="ln">${d}</td>`;
+        allMonths.forEach(m => {
+            const row = (allData[d] || []).find(x => x.年月 === m);
+            const val = row ? row.月增率 : null;
+            const t = Math.max(0, Math.min(1, (val + 8) / 18));
+            const color = val === null ? 'transparent' : `rgba(${Math.round(t * 255)}, ${Math.round(t * 80)}, ${Math.round((1 - t) * 255)}, 0.8)`;
+            const sel = m === selMonth ? 'selected-col' : '';
+            html += `<td class="${sel}" data-month="${m}" style="background:${color}; color:${val===null?'transparent':'#fff'}">
+                ${val ? (val>0?'+':'')+val.toFixed(1) : '---'}
+            </td>`;
+        });
+        html += '</tr>';
+    });
+    table.innerHTML = html + '</tbody>';
+}
+
+/* ════════════════════════════════════════
+   折線圖修正版：開啟圖例與互動點
+   
+════════════════════════════════════════ */
+function buildLineChart() {
+    const ctx = document.getElementById('lineChart').getContext('2d');
+    if (lineInst) lineInst.destroy();
+
+    const datasets = DISTRICTS.filter(d => allData[d]).map((d, i) => ({
+        label: d,
+        data: allMonths.map(m => {
+            const r = (allData[d] || []).find(x => x.年月 === m);
+            return r ? r.月增率 : null;
+        }),
+        borderColor: COLORS[i % COLORS.length],
+        backgroundColor: COLORS[i % COLORS.length],
+        borderWidth: 2,
+        tension: 0.3,
+        pointRadius: 2, // 增加點的大小方便滑鼠觸發
+        pointHoverRadius: 6,
+        spanGaps: true
+    }));
+
+    lineInst = new Chart(ctx, {
+        type: 'line',
+        data: { labels: allMonths, datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                // 開啟並美化標籤圖例
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: {
+                        color: '#a8afc8',
+                        padding: 20,
+                        usePointStyle: true,
+                        font: { family: 'DM Mono', size: 11 }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#13151c',
+                    borderColor: '#252836',
+                    borderWidth: 1,
+                    titleFont: { family: 'DM Mono' },
+                    bodyFont: { family: 'DM Mono' },
+                    callbacks: {
+                        label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y > 0 ? '+' : ''}${ctx.parsed.y}%`
+                    }
+                }
+            },
+            scales: {
+                x: { 
+                    grid: { color: '#1c1f2b' }, 
+                    ticks: { color: '#444968', font: { family: 'DM Mono', size: 10 } } 
+                },
+                y: { 
+                    grid: { 
+                        color: (ctx) => ctx.tick.value === 0 ? '#3a3f5c' : '#1c1f2b',
+                        lineWidth: (ctx) => ctx.tick.value === 0 ? 2 : 1
+                    }, 
+                    ticks: { 
+                        color: '#444968', 
+                        font: { family: 'DM Mono', size: 10 },
+                        callback: v => (v > 0 ? '+' : '') + v + '%' 
+                    } 
+                }
+            }
+        }
+    });
+}
+
+boot();
+</script>
+</body>
+</html>
