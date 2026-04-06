@@ -88,7 +88,7 @@ async def get_monthly_growth(
     try:
         engine = get_engine()
         # 從資料庫撈取原始交易紀錄
-        query = "SELECT district, transaction_date, total_price FROM house_prices_taipei2"
+        query = "SELECT district, transaction_date, total_price FROM house_prices_taipei"
         df = pd.read_sql(query, engine)
         
         # 資料預處理：去空格與型態轉換
