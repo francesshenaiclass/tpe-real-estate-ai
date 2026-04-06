@@ -5,6 +5,7 @@
 ---
 
 ## 系統架構
+```
 project/
 ├── train_v3.py                    # 訓練腳本（預測模型）
 ├── main.py                        # FastAPI 主程式（三支 API）
@@ -34,7 +35,7 @@ project/
     ├── house_prediction_data.csv  # 現售價資料
     ├── mrt_distance.csv           # 捷運站經緯度資料  
     └── house_prices_taipei.csv    # 實價登錄資料
-
+```
 
 ---
 
