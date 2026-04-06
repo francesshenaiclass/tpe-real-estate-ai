@@ -102,6 +102,7 @@ python train_v3.py
 ```
 
 訓練完成後會自動將模型輸出至 `models/` 目錄，並產生以下對照表供 API 使用：
+```
 models/
 ├── lgbm_real_low.pkl
 ├── lgbm_real_mid.pkl
@@ -111,6 +112,7 @@ models/
 ├── lgbm_listing_high.pkl
 ├── district_map.json        # 行政區名稱 → 編碼數字
 └── mrt_cluster_map.json     # 捷運站名稱 → 編碼數字
+```
 
 訓練結束後終端機會輸出各模型的預測誤差（MAPE）與前六大特徵重要性，可作為模型品質參考。
 
