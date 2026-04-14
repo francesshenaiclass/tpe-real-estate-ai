@@ -3,91 +3,243 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>台北房產大數據決策系統</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        :root {
-            --sidebar-bg: #13151c;
-            --sidebar-hover: #1c1f2b;
-            --accent-blue: #2563eb;
-            --text-dim: #94a3b8;
-        }
-
-        body { display: flex; height: 100vh; overflow: hidden; margin: 0; background: #0b0c10; font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; }
-        
-        /* 側邊欄樣式 */
-        .sidebar { width: 280px; background: var(--sidebar-bg); border-right: 1px solid #252836; display: flex; flex-direction: column; padding: 30px 20px; transition: 0.3s; }
-        .sidebar-header { margin-bottom: 50px; text-align: center; }
-        .sidebar-header h3 { color: #f0c040; font-size: 1.5rem; letter-spacing: 2px; }
-
-        /* 導覽按鈕 */
-        .nav-link { 
-            color: var(--text-dim); padding: 16px 20px; border-radius: 12px; margin-bottom: 12px; 
-            cursor: pointer; border: none; background: none; text-align: left; width: 100%; 
-            transition: all 0.3s ease; display: flex; align-items: center; font-size: 1rem;
-        }
-        .nav-link i { width: 24px; font-size: 1.2rem; }
-        .nav-link:hover { background: var(--sidebar-hover); color: white; transform: translateX(5px); }
-        .nav-link.active { background: var(--accent-blue); color: white; font-weight: bold; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); }
-
-        /* 主內容區 (Iframe) */
-        .content-container { flex: 1; position: relative; background: #fff; }
-        .content-frame { width: 100%; height: 100%; border: none; }
-        
-        /* 頁尾資訊 */
-        .sidebar-footer { margin-top: auto; font-size: 0.75rem; color: #444968; text-align: center; border-top: 1px solid #252836; pt-3; }
-    </style>
+    <title>台北房產 AI 決策系統</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
 </head>
 <body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">台北房產 AI</div>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link active">首頁</a></li>
+                <li><a href="{{ url_for('get_architecture') }}" class="nav-link">系統架構圖</a></li>
+                <li><a href="{{ url_for('get_predict') }}" class="nav-link">精準房價預估</a></li>
+                <li><a href="{{ url_for('get_recommend') }}" class="nav-link">購屋預算推薦</a></li>
+                <li><a href="{{ url_for('get_trends') }}" class="nav-link">市場漲幅分析</a></li>
+            </ul>
+        </div>
+    </nav>
 
-<div class="sidebar">
-    <div class="sidebar-header">
-        <h3><i class="fa-solid fa-city me-2"></i>台北房產 AI</h3>
-    </div>
-    
-    <div class="nav flex-column">
-        <button class="nav-link active" onclick="loadPage('/pages/predict', this)">
-            <i class="fa-solid fa-wand-magic-sparkles me-3"></i> 精準房價預估
-        </button>
-        
-        <button class="nav-link" onclick="loadPage('/pages/recommend', this)">
-            <i class="fa-solid fa-map-location-dot me-3"></i> 購屋預算推薦
-        </button>
-        
-        <button class="nav-link" onclick="loadPage('/pages/trends', this)">
-            <i class="fa-solid fa-chart-line me-3"></i> 市場漲幅分析
-        </button>
-    </div>
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-content">
+                <p class="hero-label">FINAL PROJECT · BIG DATA & AI ENGINEERING</p>
+                <h1 class="hero-title">
+                    台北房產<br>
+                    <span class="highlight">AI 決策系統</span>
+                </h1>
+                <p class="hero-description">
+                    整合房屋市場大數據與機器學習模型，為買方與賣方提供客觀的價格參考依據。<br>
+                    精準預測、智慧推薦、洞察市場。
+                </p>
+            </div>
 
-    <div class="sidebar-footer pt-3">
-        <p>© 2026 Big Data Project<br>AI Talent Development Class</p>
-    </div>
-</div>
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <p class="stat-label">房屋資料筆數</p>
+                    <p class="stat-value">32萬+</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">資料來源</p>
+                    <p class="stat-value">4大平台</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">API 端點</p>
+                    <p class="stat-value">3支</p>
+                </div>
+            </div>
+        </section>
 
-<div class="content-container">
-    <iframe id="mainFrame" class="content-frame" src="/pages/predict"></iframe>
-</div>
+        <!-- Problem-Solution-Result Section -->
+        <section class="psr-section">
+            <h2 class="section-title">問題 → 解決方案 → 成果</h2>
+            <div class="psr-grid">
+                <!-- Problem -->
+                <div class="psr-card problem-card">
+                    <div class="psr-header">
+                        <span class="psr-icon">⚠️</span>
+                        <h3>痛點</h3>
+                    </div>
+                    <ul class="psr-list">
+                        <li>房屋資訊碎片化，難以橫向比較</li>
+                        <li>技能需求與薪資透明度低</li>
+                        <li>缺乏客觀的價格量化工具</li>
+                    </ul>
+                </div>
 
-<script>
-    /**
-     * 切換頁面功能
-     * @param {string} url - 內部路由地址
-     * @param {HTMLElement} el - 點擊的按鈕元素
-     */
-    function loadPage(url, el) {
-        const frame = document.getElementById('mainFrame');
-        
-        // 1. 切換 Iframe 內容
-        frame.src = url;
-        
-        // 2. 切換按鈕樣式
-        document.querySelectorAll('.nav-link').forEach(btn => btn.classList.remove('active'));
-        el.classList.add('active');
+                <!-- Solution -->
+                <div class="psr-card solution-card">
+                    <div class="psr-header">
+                        <span class="psr-icon">⚙️</span>
+                        <h3>解決方案</h3>
+                    </div>
+                    <ul class="psr-list">
+                        <li>統一爬取、ETL 清洗、資料入庫</li>
+                        <li>LightGBM 分位數回歸模型</li>
+                        <li>RESTful API + 互動前端</li>
+                    </ul>
+                </div>
 
-        // 3. 輸出除錯資訊 (開發時可用)
-        console.log("🌐 載入頁面:", url);
-    }
-</script>
+                <!-- Result -->
+                <div class="psr-card result-card">
+                    <div class="psr-header">
+                        <span class="psr-icon">✦</span>
+                        <h3>成果</h3>
+                    </div>
+                    <ul class="psr-list">
+                        <li>即時可互動的分析平台</li>
+                        <li>AI 預測準確度 ±11-12%</li>
+                        <li>完整呈現市場結構與洞察</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Team Section -->
+        <section class="team-section">
+            <h2 class="section-title">人員分工</h2>
+            <div class="team-grid">
+                <div class="team-card">
+                    <div class="team-avatar">L</div>
+                    <h3 class="team-name">Layla</h3>
+                    <p class="team-role">專案經理</p>
+                    <ul class="team-tasks">
+                        <li>永慶房屋現售價資料爬取及清洗</li>
+                        <li>捷運站經緯度資料清洗</li>
+                        <li>房價預測分析API製作</li>
+                        <li>AI模型及API 優化</li>
+                        <li>互動式儀表製作</li>
+                        <li>甘特圖製作</li>
+                        <li>UIUX首頁設計</li>
+                    </ul>
+                </div>
+
+                <div class="team-card">
+                    <div class="team-avatar">F</div>
+                    <h3 class="team-name">Frances</h3>
+                    <p class="team-role">工程師</p>
+                    <ul class="team-tasks">
+                        <li>住商不動產現售價資料爬取及清洗</li>
+                        <li>資料庫上傳維護及備份</li>
+                        <li>模型/API 初版</li>
+                        <li>API 優化</li>
+                        <li>專題簡報製作</li>
+                    </ul>
+                </div>
+
+                <div class="team-card">
+                    <div class="team-avatar">K</div>
+                    <h3 class="team-name">Kevin</h3>
+                    <p class="team-role">工程師</p>
+                    <ul class="team-tasks">
+                        <li>信義房屋現售價資料爬取及清洗</li>
+                        <li>實價登錄成交價資料爬取及清洗</li>
+                        <li>資料庫架構設計</li>
+                        <li>市場預測分析API製作</li>
+                        <li>API 網頁架構整合</li>
+                    </ul>
+                </div>
+
+                <div class="team-card">
+                    <div class="team-avatar">B</div>
+                    <h3 class="team-name">Betty</h3>
+                    <p class="team-role">工程師</p>
+                    <ul class="team-tasks">
+                        <li>實價登錄成交價爬取</li>
+                        <li>市場預測分析API製作</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Data Source Section -->
+        <section class="datasource-section">
+            <h2 class="section-title">資料來源</h2>
+            <div class="datasource-grid">
+                <div class="datasource-card">
+                    <span class="datasource-icon">🏢</span>
+                    <p>永慶房屋</p>
+                </div>
+                <div class="datasource-card">
+                    <span class="datasource-icon">🏢</span>
+                    <p>信義房屋</p>
+                </div>
+                <div class="datasource-card">
+                    <span class="datasource-icon">🏢</span>
+                    <p>住商不動產</p>
+                </div>
+                <div class="datasource-card">
+                    <span class="datasource-icon">📊</span>
+                    <p>政府實價登錄</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Core Features Section -->
+        <section class="features-section">
+            <h2 class="section-title">核心功能</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h3>精準房價預估</h3>
+                    <p>利用 LightGBM 分位數回歸模型，提供低、中、高三個分位數價格預測</p>
+                </div>
+                <div class="feature-card">
+                    <h3>購屋預算推薦</h3>
+                    <p>根據使用者需求與市場行情，推薦合理的購屋預算區間</p>
+                </div>
+                <div class="feature-card">
+                    <h3>市場漲幅分析</h3>
+                    <p>分析台北市房價趨勢與地段溢價，掌握市場動態</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- AI Model Section -->
+        <section class="model-section">
+            <h2 class="section-title">AI 模型說明</h2>
+            
+            <div class="model-subsection">
+                <h3>模型成效評估</h3>
+                <div class="model-metrics">
+                    <div class="metric-item">
+                        <p class="metric-label">實價登錄 P50 模型</p>
+                        <p class="metric-value">12.12%</p>
+                        <p class="metric-desc">預測單價平均誤差</p>
+                    </div>
+                    <div class="metric-item">
+                        <p class="metric-label">房屋現售 P50 模型</p>
+                        <p class="metric-value">11.30%</p>
+                        <p class="metric-desc">預測單價平均誤差</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="model-subsection">
+                <h3>特徵工程</h3>
+                <ul class="feature-list">
+                    <li><strong>捷運生活圈：</strong>利用 cKDTree 演算法進行空間檢索，將房地產資料自動歸屬至最近的捷運站點</li>
+                    <li><strong>座標交互項：</strong>捕捉地理座標的非線性交互作用，識別特定地段（如蛋黃區）的加乘效應</li>
+                    <li><strong>樓層比：</strong>使用樓層比而非絕對樓層，更精準反映住宅價值</li>
+                    <li><strong>時間數值化：</strong>統一將時間轉換為以「月」為單位的線性數值</li>
+                </ul>
+            </div>
+
+            <div class="model-subsection">
+                <h3>技術限制</h3>
+                <ul class="limitation-list">
+                    <li>模型無法捕捉裝潢品質、朝向、視野、鄰近設施等隱性因素</li>
+                    <li>預測結果對罕見地段（訓練資料少的地區）準確度較低</li>
+                    <li>座標交互項為線性近似，複雜地段梯度可能存在誤差</li>
+                    <li>時間特徵僅捕捉線性趨勢，無法預測市場急遽波動</li>
+                </ul>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
 </body>
 </html>

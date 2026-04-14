@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系統架構圖 - 台北房產 AI 決策系統</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">台北房產 AI</div>
+            <ul class="nav-menu">
+                <li><a href="{{ url_for('portal') }}" class="nav-link">首頁</a></li>
+                <li><a href="{{ url_for('get_architecture') }}" class="nav-link active">系統架構圖</a></li>
+                <li><a href="{{ url_for('get_predict') }}" class="nav-link">精準房價預估</a></li>
+                <li><a href="{{ url_for('get_recommend') }}" class="nav-link">購屋預算推薦</a></li>
+                <li><a href="{{ url_for('get_trends') }}" class="nav-link">市場漲幅分析</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section style="padding: 3rem 0;">
+            <h1 style="font-size: 2.5rem; font-weight: 700; color: #0d9488; margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem;">
+                <span style="font-size: 2rem;">⚡</span>
+                技術管線與開發架構
+            </h1>
+            <p style="font-size: 1.1rem; color: #4b5563; margin-bottom: 2rem;">
+                點擊圖表中的節點可直接查看對應的 GitHub 源碼檔案。
+            </p>
+
+            <div class="mermaid" style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
+flowchart LR
+
+subgraph group_g1["Data Prep (數據準備與清洗層)"]
+  node_n1["原始數據爬蟲<br/>[crawler.py]<br/>(永慶/信義/住商/實價)"]
+  node_n2["格式轉換<br/>[json_to_csv.py]<br/>(JSON 轉為數據矩陣)"]
+  node_n3["初步清洗 v1<br/>[clean_v1.py]<br/>(處理缺失值與重複)"]
+  node_n4["數據合併流<br/>[merge.py]<br/>(整合各平台數據源)"]
+  node_n5["API 數據聚合<br/>[api_merge_all.py]<br/>(ETL 自動化腳本)"]
+  node_n6["行政區標準化<br/>[data_cleaning.py]<br/>(12行政區地理校正)"]
+  node_n7["捷運特徵工程<br/>[mrt.py]<br/>(cKDTree 空間歸屬)"]
+  node_n8["實價登錄整合表<br/>[process.py]<br/>(特徵工程最終建置)"]
+end
+
+subgraph group_g2["Core App (AI 模型與核心服務)"]
+  node_n9["模型訓練入口<br/>[train_v3.py]<br/>(LightGBM 分位數回歸)"]
+  node_n10[("模型製品庫<br/>[.pkl]<br/>(P10/P50/P90 模型檔)")]
+  node_n11["FastAPI 主入口<br/>[main.py]<br/>(系統總路由)"]
+  node_n12["房價預估 API<br/>[predict_v3.py]<br/>(即時 AI 估價引擎)"]
+  node_n13["預算推薦 API<br/>[recommender.py]<br/>(智慧選屋推薦)"]
+  node_n14["漲幅分析 API<br/>[market_trends.py]<br/>(市場趨勢動態分析)"]
+  node_n15["地理參考資料<br/>[district_map.json]<br/>(行政區映射地圖)"]
+  node_n16["互動前端網頁<br/>[index.html]<br/>(UI/UX 展示介面)"]
+end
+
+subgraph group_g3["Legacy Demos (歷程展示)"]
+  node_n17["舊版 API<br/>[api.py]"]
+  node_n18["量化儀表板<br/>[main.py]"]
+  node_n19["房價 App 終端<br/>[main.py]"]
+end
+
+node_n1 --> node_n2
+node_n2 --> node_n3
+node_n3 --> node_n4
+node_n1 --> node_n5
+node_n6 --> node_n7
+node_n7 --> node_n8
+node_n4 --> node_n8
+node_n5 --> node_n8
+node_n8 --> node_n9
+node_n9 --> node_n10
+node_n11 --> node_n12
+node_n11 --> node_n13
+node_n11 --> node_n14
+node_n11 --> node_n15
+node_n12 --> node_n10
+node_n16 --> node_n11
+node_n17 --> node_n15
+node_n18 --> node_n15
+node_n19 --> node_n15
+
+click node_n1 "https://github.com/francesshenaiclass/tpe-real-estate-ai/blob/main/kevin/crawler.py" _blank
+click node_n2 "https://github.com/francesshenaiclass/tpe-real-estate-ai/blob/main/kevin/json_to_csv.py" _blank
+click node_n3 "https://github.com/francesshenaiclass/tpe-real-estate-ai/blob/main/kevin/clean_v1.py" _blank
+click node_n4 "https://github.com/francesshenaiclass/tpe-real-estate-ai/blob/main/kevin/merge.py" _blank
+click node_n5 "https://github.com/francesshenaiclass/tpe-real-estate-ai/blob/main/frances/api/api_merge_all.py" _blank
+click node_n6 "https://github.com/francesshenaiclass/tpe-real-estate-ai/blob/main/永慶房屋/data_cleaning.py" _blank
+click node_n7 "https://github.com/francesshenaiclass/tpe-real-estate-ai/blob/main/final/mrt.py" _blank
+click node_n8 "https://github.com/francesshenaiclass/tpe-real-estate-ai/blob/main/實價登錄最終版/process.py" _blank
+click node_n9 "https://github.com/francesshenaiclass/tpe-real-estate-ai/blob/main/train/train_v3.py" _blank
+click node_n10 "https://github.com/francesshenaiclass/tpe-real-estate-ai/blob/main/train/models_v3_mrt_cluster/lgbm_real_mid.pkl" _blank
+click node_n11 "https://github.com/francesshenaiclass/tpe-real-estate-ai/blob/main/project/main.py" _blank
+click node_n12 "https://github.com/francesshenaiclass/tpe-real-estate-ai/blob/main/project/api/predict_v3.py" _blank
+click node_n13 "https://github.com/francesshenaiclass/tpe-real-estate-ai/blob/main/project/api/recommender.py" _blank
+click node_n14 "https://github.com/francesshenaiclass/tpe-real-estate-ai/blob/main/project/api/market_trends.py" _blank
+click node_n15 "https://github.com/francesshenaiclass/tpe-real-estate-ai/blob/main/project/static/district_map.json" _blank
+click node_n16 "https://github.com/francesshenaiclass/tpe-real-estate-ai/blob/main/project/templates/index.html" _blank
+click node_n17 "https://github.com/francesshenaiclass/tpe-real-estate-ai/blob/main/taipeihouseapi/api.py" _blank
+click node_n18 "https://github.com/francesshenaiclass/tpe-real-estate-ai/blob/main/taipei-real-estate-quant-engine/main.py" _blank
+click node_n19 "https://github.com/francesshenaiclass/tpe-real-estate-ai/blob/main/永慶房屋/main.py" _blank
+
+classDef toneBlue fill:#f0f9ff,stroke:#007AFF,stroke-width:1px,color:#231815
+classDef toneAmber fill:#fffbeb,stroke:#d97706,stroke-width:1px,color:#231815
+classDef toneMint fill:#f0fdf4,stroke:#16a34a,stroke-width:1px,color:#231815
+class node_n1,node_n2,node_n3,node_n4,node_n5,node_n6,node_n7,node_n8 toneBlue
+class node_n9,node_n10,node_n11,node_n12,node_n13,node_n14,node_n15,node_n16 toneAmber
+class node_n17,node_n18,node_n19 toneMint
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // 關鍵修正：必須設定 securityLevel 為 'loose' 才能讓點擊連結生效
+        mermaid.initialize({ 
+            startOnLoad: true, 
+            theme: 'base',
+            securityLevel: 'loose', 
+            flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' }
+        });
+    </script>
+</body>
+</html>

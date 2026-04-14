@@ -66,6 +66,10 @@ if market_trends and hasattr(market_trends, 'router'):
 async def portal(request: Request):
     """主首頁外殼"""
     return templates.TemplateResponse(request=request, name="index.html")
+# 補上這一段
+@app.get("/pages/architecture")
+async def get_architecture(request: Request):
+    return templates.TemplateResponse(request=request, name="architecture.html")
 
 @app.get("/pages/predict")
 async def get_predict(request: Request):

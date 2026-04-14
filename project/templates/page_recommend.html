@@ -2,37 +2,98 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>台北市 AI 置產建議系統 v4.7</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>購屋預算推薦 - 台北房產 AI 決策系統</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <style>
-        :root { --main-blue: #1e3a8a; --accent-blue: #2563eb; }
-        body { background-color: #f1f5f9; font-family: "PingFang TC", sans-serif; }
-        .header { background: linear-gradient(135deg, var(--main-blue), #3b82f6); color: white; padding: 1.5rem 0; border-radius: 0 0 25px 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        #map { height: 500px; width: 100%; border-radius: 20px; border: 4px solid white; box-shadow: 0 10px 15px rgba(0,0,0,0.05); cursor: crosshair; }
-        .card { border: none; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .form-label { font-weight: 700; color: #334155; }
-        .btn-primary { background-color: var(--accent-blue); border: none; border-radius: 12px; font-weight: 700; padding: 0.8rem; }
+        :root { --teal-600: #0d9488; --teal-50: #f0fdfa; --blue-600: #2563eb; }
+        
+        /* 🚩 關鍵修正：確保整體高度撐開 */
+        html, body { height: 100%; margin: 0; overflow: hidden; }
+        body { display: flex; flex-direction: column; background-color: var(--teal-50); }
+
+        .navbar { flex-shrink: 0; }
+
+        /* 🚩 關鍵修正：主容器橫向排列，且高度扣除 Navbar */
+        .main-wrapper {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow-y: auto; /* 讓內容過長時可以滾動 */
+            padding: 1.5rem;
+            gap: 1.5rem;
+        }
+
+        .top-section {
+            display: flex;
+            gap: 1.5rem;
+            height: 600px; /* 🚩 固定地圖與面板的高度，防止不見 */
+            flex-shrink: 0;
+        }
+
+        /* 控制面板 (左) */
+        #panel { 
+            width: 400px; 
+            padding: 1.5rem; 
+            background: white; 
+            border-radius: 1rem; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            overflow-y: auto;
+        }
+
+        /* 地圖區域 (右) */
+        #map { 
+            flex: 1; 
+            border-radius: 1rem; 
+            border: 4px solid white; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+            z-index: 1;
+        }
+
+        /* 推薦結果區 (下) */
+        .result-container { 
+            background: white; 
+            border-radius: 1rem; 
+            padding: 1.5rem; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+        }
+
+        .form-label { font-weight: 700; color: #334155; margin-bottom: 0.3rem; font-size: 0.9rem; }
+        .btn-predict { background-color: var(--blue-600); color: white; border: none; border-radius: 10px; font-weight: 700; padding: 0.8rem; width: 100%; transition: 0.3s; }
+        .btn-predict:hover { background-color: #1e40af; }
+        
+        .rec-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        .rec-table th { background: #f8fafc; padding: 1rem; text-align: center; border-bottom: 2px solid #e2e8f0; }
+        .rec-table td { padding: 1rem; text-align: center; border-bottom: 1px solid #f1f5f9; }
     </style>
 </head>
 <body>
 
-<header class="header text-center mb-4">
-    <div class="container">
-        <h2><i class="fa-solid fa-house-circle-check me-2"></i> 台北市智能置產分析</h2>
-        <p class="mb-0 opacity-75">點擊紅點鎖定捷運站，自動同步行政區與距離</p>
-    </div>
-</header>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">台北房產 AI</div>
+            <ul class="nav-menu">
+                <li><a href="{{ url_for('portal') }}" class="nav-link">首頁</a></li>
+                <li><a href="{{ url_for('get_architecture') }}" class="nav-link">系統架構圖</a></li>
+                <li><a href="{{ url_for('get_predict') }}" class="nav-link">精準房價預估</a></li>
+                <li><a href="{{ url_for('get_recommend') }}" class="nav-link active">購屋預算推薦</a></li>
+                <li><a href="{{ url_for('get_trends') }}" class="nav-link">市場漲幅分析</a></li>
+            </ul>
+        </div>
+    </nav>
 
-<div class="container mb-5">
-    <div class="row g-4">
-        <div class="col-lg-4">
-            <div class="card p-4">
+    <div class="main-wrapper">
+        <div class="top-section">
+            <div id="panel">
+                <h5 class="fw-bold mb-3" style="color: var(--teal-600);">置產條件設定</h5>
                 <form id="mainForm">
                     <div class="mb-3">
                         <label class="form-label">1. 目標行政區</label>
-                        <select id="district" class="form-select border-primary shadow-sm">
+                        <select id="district" class="form-select">
                             <option value="中正區">中正區</option><option value="萬華區">萬華區</option>
                             <option value="大同區">大同區</option><option value="中山區" selected>中山區</option>
                             <option value="松山區">松山區</option><option value="大安區">大安區</option>
@@ -41,53 +102,53 @@
                             <option value="北投區">北投區</option><option value="文山區">文山區</option>
                         </select>
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label">2. 購屋總預算 (萬元)</label>
                         <input type="number" id="budget" class="form-control" value="2500">
                     </div>
+
                     <div class="row g-2 mb-3">
-                        <div class="col-6"><label class="small fw-bold">坪數</label><input type="number" id="area" class="form-control" value="25"></div>
-                        <div class="col-6"><label class="small fw-bold">屋齡</label><input type="number" id="house_age" class="form-control" value="15"></div>
+                        <div class="col-6"><label class="form-label">坪數</label><input type="number" id="area" class="form-control" value="25"></div>
+                        <div class="col-6"><label class="form-label">屋齡</label><input type="number" id="house_age" class="form-control" value="15"></div>
                     </div>
+
                     <div class="mb-4">
                         <label class="form-label d-flex justify-content-between">
-                            3. 距離捷運站 <span><b id="mrt_val" class="text-primary">0</b> m</span>
+                            3. 距離捷運站 <span><b id="mrt_val" style="color: var(--blue-600);">0</b> m</span>
                         </label>
                         <input type="range" class="form-range" id="mrt_dist" min="0" max="1500" step="50" value="0">
                     </div>
-                    <button type="submit" class="btn btn-primary w-100 shadow">開始 AI 方案分析</button>
+
+                    <button type="submit" class="btn-predict">開始 AI 方案分析</button>
                 </form>
             </div>
+
+            <div id="map"></div>
         </div>
 
-        <div class="col-lg-8">
-            <div id="map" class="mb-4"></div>
-            <div class="card p-4">
-                <h5 class="fw-bold mb-3"><i class="fa-solid fa-list-check me-2"></i> 推薦格局清單</h5>
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle text-center">
-                        <thead class="table-light">
-                            <tr><th>格局類型</th><th>成交中位數(P50)</th><th>合理行情 (P10-P90)</th></tr>
-                        </thead>
-                        <tbody id="resultBody">
-                            <tr><td colspan="3" class="py-5 text-muted">請操作地圖或填寫預算後分析</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <div class="result-container">
+            <h5 class="fw-bold"><i class="fa-solid fa-list-check me-2"></i> 推薦格局清單</h5>
+            <table class="rec-table">
+                <thead>
+                    <tr><th>格局類型</th><th>成交中位數(P50)</th><th>合理行情 (P10-P90)</th></tr>
+                </thead>
+                <tbody id="resultBody">
+                    <tr><td colspan="3" class="py-4 text-muted">請操作地圖或填寫預算後分析</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
-</div>
 
-<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-<script>
-    // 修正點：整合後所有 API 都在同一個 host 下
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
     const API_BASE = '/api/recommender';
     
+    // 🚩 1. 補上座標對照表
     const districtCoords = {
         "中正區": [25.0323, 121.5186], "萬華區": [25.0331, 121.4994], "大同區": [25.0630, 121.5133],
         "中山區": [25.0685, 121.5282], "松山區": [25.0597, 121.5583], "大安區": [25.0263, 121.5283],
-        "信義區": [25.0324, 121.5668], "內湖區": [25.0688, 121.5898], "南港區": [25.0548, 121.6068],
+        "信義區": [25.0324, 121.5668], "內湖區": [25.0688, 121.5889], "南港區": [25.0548, 121.6068],
         "士林區": [25.0922, 121.5255], "北投區": [25.1321, 121.4987], "文山區": [24.9897, 121.5768]
     };
 
@@ -95,57 +156,44 @@
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     let userMarker = L.marker([25.0685, 121.5282]).addTo(map);
-    let rangeCircle = L.circle([25.0685, 121.5282], { 
-        radius: 0, color: '#2563eb', fillColor: '#3b82f6', fillOpacity: 0.3, weight: 2 
-    }).addTo(map);
+    let rangeCircle = L.circle([25.0685, 121.5282], { radius: 0, color: '#2563eb', weight: 2 }).addTo(map);
 
-    // 1. 初始化捷運紅點
-    async function initMRT() {
-        try {
-            // 修正點：對接整合後的 mrt_data 路徑
-            const res = await fetch(`${API_BASE}/mrt_data`);
-            const stations = await res.json();
-            stations.forEach(s => {
-                const dot = L.circleMarker([s.lat, s.lon], { 
-                    radius: 5, fillColor: "#ef4444", color: "#fff", weight: 1, fillOpacity: 0.8 
-                }).addTo(map);
-
-                dot.on('click', async (e) => {
-                    L.DomEvent.stopPropagation(e);
-                    
-                    document.getElementById('mrt_dist').value = 0;
-                    document.getElementById('mrt_val').innerText = 0;
-                    rangeCircle.setRadius(0);
-
-                    // 修正點：對接整合後的 detect_district 路徑
-                    const detRes = await fetch(`${API_BASE}/detect_district?lat=${s.lat}&lon=${s.lon}`);
-                    const detData = await detRes.json();
-                    if (detData.district !== "未知區域") {
-                        document.getElementById('district').value = detData.district;
-                    }
-                    
-                    updatePos(s.lat, s.lon, s.出入口名稱);
-                });
-                dot.bindTooltip(s.出入口名稱);
-            });
-        } catch(e) { console.error("無法載入捷運資料", e); }
-    }
-    initMRT();
-
-    // 2. 下拉選單連動地圖
+    // 🚩 2. 補上監聽器 (當下拉選單改變時觸發)
     document.getElementById('district').addEventListener('change', (e) => {
         const coords = districtCoords[e.target.value];
         if (coords) {
-            map.flyTo(coords, 14, { duration: 1.2 });
-            updatePos(coords[0], coords[1], `已切換至：${e.target.value}`);
+            map.flyTo(coords, 14, { duration: 1.5 });
+            updatePos(coords[0], coords[1], `已鎖定：${e.target.value}`);
+            document.getElementById('mrt_dist').value = 0;
+            document.getElementById('mrt_val').innerText = 0;
+            rangeCircle.setRadius(0);
         }
     });
 
-    // 3. 點擊地圖空白處
+    async function initMRT() {
+        try {
+            const res = await fetch(`${API_BASE}/mrt_data`);
+            const stations = await res.json();
+            stations.forEach(s => {
+                const dot = L.circleMarker([s.lat, s.lon], { radius: 5, fillColor: "#ef4444", color: "#fff", fillOpacity: 0.8 }).addTo(map);
+                dot.on('click', async (e) => {
+                    L.DomEvent.stopPropagation(e);
+                    updatePos(s.lat, s.lon, s.出入口名稱);
+                    document.getElementById('mrt_dist').value = 0;
+                    document.getElementById('mrt_val').innerText = 0;
+                    rangeCircle.setRadius(0);
+                    const detRes = await fetch(`${API_BASE}/detect_district?lat=${s.lat}&lon=${s.lon}`);
+                    const detData = await detRes.json();
+                    if (detData.district !== "未知區域") document.getElementById('district').value = detData.district;
+                });
+            });
+        } catch(e) {}
+    }
+    initMRT();
+
     map.on('click', async (e) => {
         const { lat, lng } = e.latlng;
         updatePos(lat, lng);
-        // 修正點：對接整合後的 detect_district 路徑
         const res = await fetch(`${API_BASE}/detect_district?lat=${lat}&lon=${lng}`);
         const data = await res.json();
         if (data.district !== "未知區域") document.getElementById('district').value = data.district;
@@ -155,19 +203,18 @@
         userMarker.setLatLng([lat, lon]);
         rangeCircle.setLatLng([lat, lon]);
         if (title) userMarker.bindPopup(`<b>${title}</b>`).openPopup();
+        setTimeout(() => { map.invalidateSize(); }, 200);
     }
 
-    // 4. 拉桿連動
     document.getElementById('mrt_dist').oninput = (e) => {
         document.getElementById('mrt_val').innerText = e.target.value;
-        rangeCircle.setRadius(e.target.value);
+        rangeCircle.setRadius(parseInt(e.target.value));
     };
 
-    // 5. 提交分析
     document.getElementById('mainForm').onsubmit = async (e) => {
         e.preventDefault();
         const body = document.getElementById('resultBody');
-        body.innerHTML = '<tr><td colspan="3" class="py-5"> AI 置產顧問分析中...</td></tr>';
+        body.innerHTML = '<tr><td colspan="3" class="py-4"> AI 置產顧問分析中...</td></tr>';
         
         const payload = {
             district: document.getElementById('district').value,
@@ -180,19 +227,18 @@
         };
 
         try {
-            // 修正點：對接整合後的 options 路徑
             const res = await fetch(`${API_BASE}/options`, { 
                 method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) 
             });
             const data = await res.json();
             body.innerHTML = data.results.map(r => `
                 <tr>
-                    <td class="fw-bold text-dark">${r.layout_type}</td>
+                    <td class="fw-bold">${r.layout_type}</td>
                     <td class="text-primary fw-bold">${r.real_p50.toLocaleString()} 萬</td>
                     <td class="small text-muted">${r.real_p10.toLocaleString()} ~ ${r.real_p90.toLocaleString()} 萬</td>
                 </tr>
-            `).join('') || '<tr><td colspan="3" class="py-5">預算內無適合方案</td></tr>';
-        } catch(e) { body.innerHTML = '<tr><td colspan="3" class="py-5 text-danger">連線失敗</td></tr>'; }
+            `).join('') || '<tr><td colspan="3" class="py-4">預算內無適合方案</td></tr>';
+        } catch(e) { body.innerHTML = '<tr><td colspan="3">分析失敗</td></tr>'; }
     };
 </script>
 </body>
