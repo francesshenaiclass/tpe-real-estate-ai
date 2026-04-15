@@ -1,0 +1,580 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "台北房產大數據決策平台",
+    "description": "\n    本平台旨在解決台北市購屋資訊不對稱問題，透過爬蟲抓取四大資料源，建立分群與預測模型。\n    \n    * **技術規格**：FastAPI + LightGBM + MySQL + GCP Cloud SQL\n    * **主要功能**：AI 房價預估、置產建議、房價趨勢 \n    * **開發團隊**：組長 Frances 與其AI決策團隊\n    ",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/predict/v3": {
+      "post": {
+        "tags": [
+          "AI 精準預估"
+        ],
+        "summary": "執行 AI 房價精準預估",
+        "description": "##  AI 房價預估核心邏輯\n本端點整合 **LightGBM 分位數回歸模型**，針對台北市房價進行深度預測：\n\n1. **特徵工程處理**：自動將「行政區」與「捷運站」轉換為模型可識別的編碼，並計算「樓層比率」與「座標互動項」。\n2. **多模型平行運算**：同時啟動 6 個模型，包含：\n    - **實價登錄模型** (Real Price)：預估成交中位數 P50、低標 P10、高標 P90。\n    - **市場開價模型** (Listing Price)：預估開價中位數與範圍。\n3. **議價空間分析**：計算開價與實價之間的差距，提供「建議議價比例」與「市場熱度」建議。\n\n---\n###  輸入說明\n- 請參考下方的 **Request Body** 架構。\n- **house_type**：支援 公寓、大樓、華廈、透天、套房。\n- **building_area**：請輸入權狀總坪數。\n\n###  輸出價值\n- **精準開價**：幫助買賣雙方設定合理的起始價格。\n- **行情參考**：提供該物件在實價登錄中的落點預測。",
+        "operationId": "do_predict_api_predict_v3_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PredictReq"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recommender/mrt_data": {
+      "get": {
+        "tags": [
+          "預算推薦"
+        ],
+        "summary": "獲取捷運站座標資料",
+        "description": "回傳靜態捷運站座標 JSON 檔，用於前端地圖繪製圖釘。",
+        "operationId": "get_mrt_api_recommender_mrt_data_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recommender/detect_district": {
+      "get": {
+        "tags": [
+          "預算推薦"
+        ],
+        "summary": "經緯度反查行政區",
+        "description": "透過 Shapely GIS 運算，判斷指定的 GPS 座標屬於台北市哪一個行政區。\n這對於點擊地圖自動填入行政區功能非常有用。",
+        "operationId": "detect_district_api_recommender_detect_district_get",
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "description": "緯度",
+              "title": "Lat"
+            },
+            "description": "緯度",
+            "example": 25.0422
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "description": "經度",
+              "title": "Lon"
+            },
+            "description": "經度",
+            "example": 121.5327
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recommender/options": {
+      "post": {
+        "tags": [
+          "預算推薦"
+        ],
+        "summary": "獲取預算匹配推薦方案",
+        "description": "## 預算推薦核心邏輯：\n1. 接收使用者輸入的行政區、預算、屋齡與坪數偏好。\n2. 系統模擬多種 **格局場景** (如：3房公寓、2房大樓)。\n3. 利用 AI 模型計算各場景在該地點的 **中位數房價 (P50)**。\n4. 篩選出 **低於使用者預算** 的方案，並提供合理議價範圍 (P10~P90)。",
+        "operationId": "get_options_api_recommender_options_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OptionsQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/trends/health": {
+      "get": {
+        "tags": [
+          "市場趨勢分析"
+        ],
+        "summary": "系統健康檢查",
+        "description": "## 系統狀態監控：\n- 檢查 FastAPI 伺服器是否正常運作。\n- 測試與 MySQL 資料庫 (包含 GCP 雲端備援) 的連線狀態。",
+        "operationId": "health_api_trends_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/trends/monthly-growth": {
+      "get": {
+        "tags": [
+          "市場趨勢分析"
+        ],
+        "summary": "獲取各區房價月增率趨勢",
+        "description": "## 房價趨勢數據分析邏輯：\n1. **資料提取**：從 Dv108主機的資料庫提取 Table `house_prices_taipei2` 讀取實價登錄原始數據。\n2. **日期正規化**：將民國格式 (如 11502) 或特殊字串自動解析為 ISO 標準日期 (2026-02)。\n3. **時序聚合**：依據年月分組，計算該月份的「平均總價」。\n4. **指標運算 (MoM)**：計算每一月份相對於前一月份的 **月增率 (Month-over-Month)**。\n\n### 回傳格式說明：\n- **年月**：YYYY-MM 格式。\n- **均總價**：該月成交平均價格 (萬元)。\n- **月增率**：相較上月的漲跌幅百分比 (%)。",
+        "operationId": "get_monthly_growth_api_trends_monthly_growth_get",
+        "parameters": [
+          {
+            "name": "district",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "行政區名稱，若不填則回傳全台北市各區資料",
+              "title": "District"
+            },
+            "description": "行政區名稱，若不填則回傳全台北市各區資料",
+            "example": "大安區"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "tags": [
+          "頁面導覽"
+        ],
+        "summary": "Portal",
+        "description": "主首頁入口",
+        "operationId": "portal__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pages/predict": {
+      "get": {
+        "tags": [
+          "頁面導覽"
+        ],
+        "summary": "Get Predict",
+        "description": "AI 房價預估頁面",
+        "operationId": "get_predict_pages_predict_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pages/recommend": {
+      "get": {
+        "tags": [
+          "頁面導覽"
+        ],
+        "summary": "Get Recommend",
+        "description": "置產建議頁面",
+        "operationId": "get_recommend_pages_recommend_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pages/trends": {
+      "get": {
+        "tags": [
+          "頁面導覽"
+        ],
+        "summary": "Get Trends",
+        "description": "房價漲幅趨勢頁面",
+        "operationId": "get_trends_pages_trends_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "OptionsQuery": {
+        "properties": {
+          "budget": {
+            "type": "number",
+            "title": "Budget",
+            "description": "購屋總預算 (萬元)",
+            "example": 2500
+          },
+          "district": {
+            "type": "string",
+            "title": "District",
+            "description": "行政區名稱",
+            "example": "大安區"
+          },
+          "area": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "title": "Area",
+            "description": "預期建物坪數 (坪)",
+            "example": 25
+          },
+          "house_age": {
+            "type": "number",
+            "minimum": 0,
+            "title": "House Age",
+            "description": "偏好屋齡 (年)",
+            "example": 15
+          },
+          "mrt_dist": {
+            "type": "number",
+            "title": "Mrt Dist",
+            "description": "可接受距離捷運站公尺數",
+            "example": 500
+          },
+          "lat": {
+            "type": "number",
+            "title": "Lat",
+            "description": "中心點緯度 (地圖連動用)",
+            "default": 25.04,
+            "example": 25.0263
+          },
+          "lon": {
+            "type": "number",
+            "title": "Lon",
+            "description": "中心點經度 (地圖連動用)",
+            "default": 121.53,
+            "example": 121.5283
+          }
+        },
+        "type": "object",
+        "required": [
+          "budget",
+          "district",
+          "area",
+          "house_age",
+          "mrt_dist"
+        ],
+        "title": "OptionsQuery"
+      },
+      "PredictReq": {
+        "properties": {
+          "district": {
+            "type": "string",
+            "title": "District",
+            "description": "行政區名稱",
+            "example": "中正區"
+          },
+          "mrt_station": {
+            "type": "string",
+            "title": "Mrt Station",
+            "description": "最近捷運站名稱",
+            "example": "台北車站"
+          },
+          "building_area": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "title": "Building Area",
+            "description": "建物總坪數 (坪)",
+            "example": 25.5
+          },
+          "latitude": {
+            "type": "number",
+            "title": "Latitude",
+            "description": "地理緯度",
+            "example": 25.0348
+          },
+          "longitude": {
+            "type": "number",
+            "title": "Longitude",
+            "description": "地理經度",
+            "example": 121.5291
+          },
+          "house_type": {
+            "type": "string",
+            "enum": [
+              "公寓",
+              "大樓",
+              "華廈",
+              "透天",
+              "套房"
+            ],
+            "title": "House Type",
+            "description": "房屋類型",
+            "default": "大樓",
+            "example": "大樓"
+          },
+          "house_age": {
+            "type": "number",
+            "minimum": 0,
+            "title": "House Age",
+            "description": "屋齡 (年)",
+            "default": 0,
+            "example": 15
+          },
+          "total_floors": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "title": "Total Floors",
+            "description": "建物總層數",
+            "default": 12,
+            "example": 12
+          },
+          "start_floor": {
+            "type": "integer",
+            "title": "Start Floor",
+            "description": "欲查詢樓層",
+            "default": 5,
+            "example": 5
+          },
+          "rooms": {
+            "type": "integer",
+            "title": "Rooms",
+            "description": "房間數",
+            "default": 2,
+            "example": 2
+          },
+          "halls": {
+            "type": "integer",
+            "title": "Halls",
+            "description": "廳數",
+            "default": 1,
+            "example": 1
+          },
+          "bathrooms": {
+            "type": "integer",
+            "title": "Bathrooms",
+            "description": "衛浴數",
+            "default": 1,
+            "example": 1
+          },
+          "distance_to_mrt": {
+            "type": "number",
+            "title": "Distance To Mrt",
+            "description": "距離捷運站公尺數",
+            "default": 500,
+            "example": 300
+          }
+        },
+        "type": "object",
+        "required": [
+          "district",
+          "mrt_station",
+          "building_area",
+          "latitude",
+          "longitude"
+        ],
+        "title": "PredictReq"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "AI 精準預估",
+      "description": "包含房價分位數回歸模型 (P10, P50, P90)，提供市場成交價格區間預測。"
+    },
+    {
+      "name": "預算推薦",
+      "description": "基於地理空間分析與使用者財務預算，提供個人化的置產組合建議。"
+    },
+    {
+      "name": "市場趨勢分析",
+      "description": "整合實價登錄大數據，呈現台北市各區房價成長率與市場健康指標。"
+    },
+    {
+      "name": "頁面導覽",
+      "description": "提供前端 HTML 頁面的渲染入口。"
+    }
+  ]
+}
